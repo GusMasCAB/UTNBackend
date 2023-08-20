@@ -1,0 +1,41 @@
+version: '3' #Version de Docker Compose
+services:
+  # sección "services" es la seccion donde definimos los diferentes 
+  #contenedores que deseas administrar con Docker Compose.
+  api: #contenedor de la api.productos
+    build: .   # Ubicación del Dockerfile (actualmente en el mismo directorio)
+    ports:
+      - "3000:3000"   # Mapeo del puerto del contenedor al puerto del host
+    depends_on:
+      - mongodb   # Indicamos que depende del servicio 'mongodb'
+    healthcheck: #es un verificador si el contenedor esta en funcionamiento o no
+      test: "curl -f http://localhost:3000/ || exit 1" #se ejecuta el comando curl para hecer peticiones http.
+      interval: 10s #comprobacion cada 10 segundos.     si falla devuelve un codigo diferente al 2xx y se ejecuta exit 1
+      timeout: 5s #tiempo maximo que la comprobacion esta dispuesto a esperar. Si excede la comprobacion falla
+      start_period: 60s #tiempo que Docker Compose debe esperar antes de comenzar a realizar las comprobaciones de estado. 
+    environment: #variables de entorno
+      MONGO_URL: mongodb://mongodb:27017/empresa
+      OAUTH_AUDIENCE: http://localhost:3000/api/productos
+      OAUTH_URL: https://dev-utn-frc-iaew.auth0.com/
+  # Servicio de MongoDB
+  mongodb: #contenedor de MongoDB
+    image: mongo:latest   # Utilizamos la imagen oficial de MongoDB desde Docker Hub
+    ports:
+      - "27017:27017"   # Mapeo del puerto del contenedor al puerto del host
+    healthcheck:
+      test: "mongosh --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'"
+      interval: 10s
+      timeout: 10s
+      retries: 5 #intentos antes de considerar al servicio fallido
+      start_period: 40s
+    volumes:
+      - mongo_data:/data/db   # Mapeo de volumen para persistir los datos
+
+volumes:
+  mongo_data:   # Definimos el volumen para MongoDB
+
+#La estructura básica de cada definición de servicio es:
+#nombre_del_servicio:
+  #configuracion1: valor1
+  #configuracion2: valor2
+  #etc
